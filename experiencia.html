@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Uma experiência interativa sobre intertextualidade, inspirada na cultura nordestina brasileira. Descubra, através de pistas, símbolos e diálogos, como duas histórias podem conversar entre si." />
+<meta name="keywords" content="intertextualidade, literatura brasileira, cultura nordestina, cordel, experiência interativa" />
+<meta name="author" content="Experiência Intertextual" />
+<meta property="og:title" content="Quando duas histórias conversam" />
+<meta property="og:description" content="Uma jornada visual e sonora pela intertextualidade nordestina." />
+<meta property="og:type" content="website" />
+<title>Quando duas histórias conversam — Uma experiência intertextual</title>
+
+<!-- Fontes -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- GSAP -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+<style>
+/* ============================================================
+   TOKENS DE DESIGN — Paleta nordestina
+   ============================================================ */
+:root{
+  --bege:#F5E9D2;
+  --terracota:#B85C38;
+  --vermelho:#8E3B2E;
+  --marrom:#4B2E2A;
+  --dourado:#D4A24C;
+  --papel:#f1e2c4;
+  --tinta:#2b1c17;
+  --sombra: 0 10px 30px rgba(75,46,42,.18), 0 2px 6px rgba(75,46,42,.10);
+  --sombra-forte: 0 25px 60px rgba(75,46,42,.35);
+  --borda: 1px solid rgba(75,46,42,.25);
+  --transicao: cubic-bezier(.77,0,.175,1);
+  --font-titulo:'Cinzel', serif;
+  --font-texto:'Cormorant Garamond', serif;
+  --font-ui:'Inter', system-ui, sans-serif;
+}
+body.dark{
+  --bege:#1a120d;
+  --papel:#221610;
+  --tinta:#f0dcb8;
+  --marrom:#f5e9d2;
+  --terracota:#d97a4f;
+  --vermelho:#c85a45;
+  --dourado:#e8bd6a;
+  --sombra: 0 10px 30px rgba(0,0,0,.6), 0 2px 6px rgba(0,0,0,.4);
+}
+
+/* Reset */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--font-texto);
+  background:var(--bege);
+  color:var(--tinta);
+  line-height:1.6;
+  overflow-x:hidden;
+  cursor:none;
+  transition: background .6s ease, color .6s ease;
+}
+
+/* Textura papel antigo */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  pointer-events:none;
+  z-index:1;
+  opacity:.35;
+  background-image:
+    radial-gradient(ellipse at 20% 10%, rgba(139,90,43,.15), transparent 60%),
+    radial-gradient(ellipse at 80% 90%, rgba(75,46,42,.18), transparent 60%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .29 0 0 0 0 .18 0 0 0 0 .12 0 0 0 .35 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  mix-blend-mode:multiply;
+}
+body.dark::before{ mix-blend-mode:screen; opacity:.15 }
+
+/* ============================================================
+   CURSOR PERSONALIZADO
+   ============================================================ */
+.cursor-dot,.cursor-ring{
+  position:fixed;top:0;left:0;pointer-events:none;
+  z-index:9999;border-radius:50%;
+  transform:translate(-50%,-50%);
+  transition: width .25s var(--transicao), height .25s var(--transicao), background .25s;
+  mix-blend-mode:difference;
+}
+.cursor-dot{width:8px;height:8px;background:var(--dourado)}
+.cursor-ring{width:36px;height:36px;border:1.5px solid var(--dourado);opacity:.8}
+.cursor-active .cursor-ring{width:60px;height:60px;border-color:var(--terracota)}
+
+/* ============================================================
+   UI FIXA
+   ============================================================ */
+.progress{
+  position:fixed;top:0;left:0;height:3px;width:0%;
+  background:linear-gradient(90deg,var(--terracota),var(--dourado));
+  z-index:1000;transition:width .1s linear;
+  box-shadow:0 0 12px var(--dourado);
+}
+.menu{
+  position:fixed;top:20px;right:20px;z-index:100;
+  display:flex;gap:8px;align-items:center;
+  font-family:var(--font-ui);font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+}
+.menu button{
+  background:var(--papel);color:var(--tinta);
+  border:var(--borda);padding:10px 14px;border-radius:999px;
+  cursor:none;box-shadow:var(--sombra);
+  transition:transform .3s,background .3s;
+  font-family:var(--font-ui);font-size:11px;letter-spacing:.1em;
+}
+.menu button:hover{transform:translateY(-2px);background:var(--dourado);color:var(--marrom)}
+.menu .dot{width:8px;height:8px;border-radius:50%;background:var(--terracota);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.4)}}
+
+.floating-nav{
+  position:fixed;left:20px;top:50%;transform:translateY(-50%);
+  z-index:100;display:flex;flex-direction:column;gap:14px;
+}
+.floating-nav a{
+  width:10px;height:10px;border-radius:50%;
+  background:transparent;border:1.5px solid var(--marrom);
+  transition:all .3s;cursor:none;
+  position:relative;
+}
+body.dark .floating-nav a{border-color:var(--dourado)}
+.floating-nav a.active{background:var(--terracota);border-color:var(--terracota);transform:scale(1.4)}
+.floating-nav a::after{
+  content:attr(data-label);
+  position:absolute;left:20px;top:50%;transform:translateY(-50%);
+  background:var(--marrom);color:var(--bege);
+  padding:4px 10px;border-radius:4px;font-family:var(--font-ui);
+  font-size:10px;letter-spacing:.15em;text-transform:uppercase;
+  white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.floating-nav a:hover::after{opacity:1}
+
+.back-top{
+  position:fixed;bottom:24px;right:24px;z-index:100;
+  width:48px;height:48px;border-radius:50%;
+  background:var(--terracota);color:var(--bege);
+  border:none;cursor:none;font-size:20px;
+  box-shadow:var(--sombra-forte);
+  opacity:0;pointer-events:none;transition:opacity .4s,transform .3s;
+}
+.back-top.show{opacity:1;pointer-events:auto}
+.back-top:hover{transform:translateY(-4px) rotate(-8deg)}
+
+/* Tooltip */
+[data-tip]{position:relative}
+[data-tip]:hover::before{
+  content:attr(data-tip);
+  position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  background:var(--marrom);color:var(--bege);
+  padding:6px 12px;border-radius:6px;
+  font-family:var(--font-ui);font-size:11px;letter-spacing:.05em;
+  white-space:nowrap;z-index:200;
+  animation:tipfade .25s ease;
+}
+@keyframes tipfade{from{opacity:0;transform:translate(-50%,4px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ============================================================
+   SEÇÕES GERAIS
+   ============================================================ */
+section{
+  position:relative;
+  min-height:100vh;
+  padding:100px 6vw;
+  display:flex;flex-direction:column;justify-content:center;
+  z-index:2;
+}
+section::after{
+  content:'';position:absolute;left:10%;right:10%;bottom:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--dourado),transparent);
+  opacity:.5;
+}
+h1,h2,h3{font-family:var(--font-titulo);font-weight:600;color:var(--marrom);letter-spacing:.05em}
+h1{font-size:clamp(2.4rem,6vw,5.5rem);line-height:1.05}
+h2{font-size:clamp(1.8rem,4vw,3.2rem);margin-bottom:1.5rem}
+h3{font-size:1.4rem}
+p{font-size:clamp(1.05rem,1.4vw,1.3rem);max-width:60ch}
+
+/* Ornamentos cordel */
+.ornament{
+  display:flex;align-items:center;gap:12px;
+  color:var(--dourado);font-family:var(--font-titulo);font-size:.8rem;
+  letter-spacing:.4em;text-transform:uppercase;margin-bottom:1rem;
+}
+.ornament::before,.ornament::after{
+  content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,transparent,var(--dourado),transparent);max-width:80px;
+}
+
+/* Botão */
+.btn{
+  display:inline-flex;align-items:center;gap:12px;
+  font-family:var(--font-ui);font-size:12px;letter-spacing:.3em;text-transform:uppercase;
+  padding:16px 32px;
+  background:transparent;color:var(--marrom);
+  border:1.5px solid var(--marrom);border-radius:2px;
+  cursor:none;position:relative;overflow:hidden;
+  transition:color .4s;
+}
+.btn::before{
+  content:'';position:absolute;inset:0;
+  background:var(--marrom);transform:translateY(101%);
+  transition:transform .5s var(--transicao);z-index:-1;
+}
+.btn:hover{color:var(--bege)}
+.btn:hover::before{transform:translateY(0)}
+body.dark .btn{color:var(--dourado);border-color:var(--dourado)}
+body.dark .btn::before{background:var(--dourado)}
+body.dark .btn:hover{color:var(--marrom)}
+
+/* ============================================================
+   TELA 1 — HERO
+   ============================================================ */
+#hero{
+  min-height:100vh;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;position:relative;overflow:hidden;
+}
+#hero .sky{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse at 50% 80%, rgba(212,162,76,.35), transparent 60%),
+    linear-gradient(180deg, #e8c98a 0%, #d9a15f 45%, #b85c38 100%);
+}
+body.dark #hero .sky{
+  background:
+    radial-gradient(ellipse at 50% 80%, rgba(212,162,76,.2), transparent 60%),
+    linear-gradient(180deg, #1a0f0a 0%, #2a1810 50%, #4b2418 100%);
+}
+#hero svg.scene{
+  position:absolute;inset:0;width:100%;height:100%;
+}
+#hero .hero-content{
+  position:relative;z-index:5;padding:0 6vw;
+  animation:heroFade 1.6s ease-out both;
+}
+@keyframes heroFade{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+#hero h1{color:var(--marrom);font-weight:800;text-shadow:0 2px 20px rgba(255,240,200,.3)}
+#hero .sub{
+  font-style:italic;font-size:clamp(1.1rem,1.8vw,1.5rem);
+  margin:1.5rem auto 2.5rem;color:var(--marrom);max-width:40ch;
+}
+.cordel{position:absolute;top:0;width:2px;background:var(--marrom);transform-origin:top}
+.cordel .flag{
+  position:absolute;width:34px;height:44px;
+  background:var(--terracota);
+  left:-16px;
+  clip-path:polygon(0 0,100% 0,100% 75%,50% 100%,0 75%);
+  box-shadow:var(--sombra);
+}
+
+/* ============================================================
+   TELA 2 — CARTAS
+   ============================================================ */
+#pergunta{ background:var(--papel) }
+.pergunta-titulo{text-align:center;max-width:800px;margin:0 auto 4rem;font-style:italic;font-size:clamp(1.6rem,3vw,2.4rem);color:var(--marrom);font-family:var(--font-texto)}
+.cartas{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:2.5rem;max-width:1200px;margin:0 auto;
+}
+.carta{
+  position:relative;background:var(--bege);
+  border:var(--borda);border-radius:4px;padding:2.5rem 2rem;
+  box-shadow:var(--sombra);
+  transform:rotate(var(--rot,0deg));
+  transition:transform .5s var(--transicao),box-shadow .5s;
+  cursor:none;
+}
+.carta:hover{transform:rotate(0) translateY(-10px) scale(1.03);box-shadow:var(--sombra-forte)}
+.carta::before{
+  content:'';position:absolute;top:8px;left:8px;right:8px;bottom:8px;
+  border:1px dashed rgba(75,46,42,.35);pointer-events:none;
+}
+.carta .selo{
+  width:60px;height:60px;border-radius:50%;
+  background:var(--vermelho);color:var(--bege);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 1.5rem;font-family:var(--font-titulo);font-size:1.5rem;
+  box-shadow:inset 0 0 10px rgba(0,0,0,.3);
+}
+.carta h3{text-align:center;margin-bottom:1rem;color:var(--vermelho)}
+.carta ul{list-style:none;text-align:center}
+.carta li{padding:.4rem 0;border-bottom:1px dotted rgba(75,46,42,.2);font-style:italic}
+.carta li:last-child{border:none}
+
+/* ============================================================
+   TELA 3 — MAPA
+   ============================================================ */
+#mapa{background:linear-gradient(180deg,var(--bege),var(--papel))}
+.mapa-wrap{
+  position:relative;width:100%;max-width:1000px;margin:2rem auto;
+  aspect-ratio:16/10;
+}
+.mapa-wrap svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.node{
+  position:absolute;width:110px;height:110px;border-radius:50%;
+  background:var(--bege);border:2px solid var(--marrom);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-titulo);font-size:.7rem;text-align:center;letter-spacing:.1em;
+  cursor:none;transition:all .4s var(--transicao);
+  box-shadow:var(--sombra);color:var(--marrom);
+  padding:8px;
+  transform:translate(-50%,-50%);
+}
+.node:hover{background:var(--dourado);transform:translate(-50%,-50%) scale(1.15);z-index:5}
+.node.active{background:var(--terracota);color:var(--bege);border-color:var(--vermelho)}
+.mapa-info{
+  min-height:100px;text-align:center;margin-top:2rem;
+  font-style:italic;font-size:1.2rem;color:var(--marrom);
+  transition:opacity .4s;
+}
+
+/* ============================================================
+   TELA 4 — ESPELHO
+   ============================================================ */
+#espelho{padding:0;min-height:150vh}
+.espelho-grid{display:grid;grid-template-columns:1fr 1fr;min-height:150vh;position:relative}
+.espelho-lado{
+  padding:100px 4vw;position:sticky;top:0;height:100vh;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  overflow:hidden;
+}
+.espelho-lado.vila{background:linear-gradient(135deg,#d9b482,#b85c38)}
+.espelho-lado.fazenda{background:linear-gradient(225deg,#8E3B2E,#4B2E2A)}
+body.dark .espelho-lado.vila{background:linear-gradient(135deg,#2a1810,#4b2418)}
+body.dark .espelho-lado.fazenda{background:linear-gradient(225deg,#1a0f0a,#3a1c14)}
+.espelho-lado svg{width:80%;max-width:400px;opacity:.85}
+.espelho-lado .label{
+  font-family:var(--font-titulo);letter-spacing:.4em;font-size:.9rem;
+  color:var(--bege);margin-top:2rem;text-transform:uppercase;
+}
+.espelho-perguntas{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  z-index:10;text-align:center;pointer-events:none;
+  width:min(90%,600px);
+}
+.espelho-perguntas p{
+  font-family:var(--font-titulo);font-size:clamp(1.4rem,2.6vw,2.2rem);
+  color:var(--bege);text-shadow:0 2px 20px rgba(0,0,0,.5);
+  opacity:0;transform:translateY(20px);transition:all .8s;
+  position:absolute;left:0;right:0;
+}
+.espelho-perguntas p.visible{opacity:1;transform:translateY(0)}
+
+/* ============================================================
+   TELA 5 — CARTÕES SÍMBOLOS
+   ============================================================ */
+#simbolos{background:var(--papel)}
+.simbolos-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:2rem;max-width:1200px;margin:2rem auto;
+}
+.flip{perspective:1000px;height:260px;cursor:none}
+.flip-inner{
+  position:relative;width:100%;height:100%;
+  transition:transform .8s var(--transicao);transform-style:preserve-3d;
+}
+.flip.active .flip-inner{transform:rotateY(180deg)}
+.flip-face{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:1.5rem;text-align:center;
+  border:var(--borda);border-radius:4px;
+  backface-visibility:hidden;
+  background:var(--bege);box-shadow:var(--sombra);
+}
+.flip-back{
+  transform:rotateY(180deg);
+  background:var(--marrom);color:var(--bege);
+}
+.flip-back h3{color:var(--dourado)}
+.flip-face svg{width:80px;height:80px;margin-bottom:1rem}
+
+/* ============================================================
+   TELA 6 — LINHA DO TEMPO
+   ============================================================ */
+#timeline{background:var(--bege)}
+.timeline{
+  position:relative;max-width:900px;margin:3rem auto 0;
+  padding-left:60px;
+}
+.timeline::before{
+  content:'';position:absolute;left:20px;top:0;bottom:0;
+  width:2px;background:linear-gradient(180deg,var(--terracota),var(--dourado),var(--vermelho));
+}
+.tl-item{
+  position:relative;margin-bottom:3rem;opacity:0;transform:translateX(-30px);
+}
+.tl-item.in{opacity:1;transform:none;transition:all .8s var(--transicao)}
+.tl-item::before{
+  content:'';position:absolute;left:-48px;top:8px;
+  width:20px;height:20px;border-radius:50%;
+  background:var(--dourado);border:3px solid var(--bege);
+  box-shadow:0 0 0 2px var(--marrom);
+}
+.tl-item h3{color:var(--terracota);margin-bottom:.4rem;font-size:1.2rem}
+.tl-item p{font-style:italic}
+.tl-icon{position:absolute;left:-100px;top:0;width:40px;height:40px;opacity:.7}
+@media(max-width:640px){.tl-icon{display:none}}
+
+/* ============================================================
+   TELA 7 — INTERTEXTUALIDADE PAINEL
+   ============================================================ */
+#painel{background:var(--papel);text-align:center}
+.painel-wrap{
+  position:relative;width:100%;max-width:900px;margin:3rem auto;
+  aspect-ratio:1;
+}
+.painel-centro{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,var(--dourado),var(--terracota));
+  display:flex;align-items:center;justify-content:center;
+  color:var(--bege);font-family:var(--font-titulo);
+  font-size:1rem;text-align:center;padding:2rem;letter-spacing:.05em;
+  box-shadow:0 0 60px rgba(212,162,76,.5);
+  animation:rotate 40s linear infinite;
+}
+.painel-centro span{animation:rotate 40s linear infinite reverse;display:inline-block}
+@keyframes rotate{to{transform:rotate(360deg)}}
+.conceito{
+  position:absolute;padding:12px 20px;
+  background:var(--bege);border:1.5px solid var(--marrom);
+  border-radius:2px;font-family:var(--font-titulo);font-size:.85rem;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--marrom);
+  cursor:none;box-shadow:var(--sombra);
+  transition:all .4s var(--transicao);
+  transform:translate(-50%,-50%);
+}
+.conceito:hover{background:var(--terracota);color:var(--bege);transform:translate(-50%,-50%) scale(1.1)}
+.conceito .exp{
+  position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%);
+  background:var(--marrom);color:var(--bege);
+  padding:10px 14px;border-radius:4px;font-family:var(--font-texto);
+  font-size:.95rem;letter-spacing:0;text-transform:none;font-style:italic;
+  width:220px;opacity:0;pointer-events:none;transition:opacity .3s;
+  z-index:10;
+}
+.conceito:hover .exp{opacity:1}
+
+/* ============================================================
+   TELA 8 — PORTAS
+   ============================================================ */
+#portas{background:linear-gradient(180deg,var(--vermelho),var(--marrom));color:var(--bege)}
+#portas h2{color:var(--dourado);text-align:center}
+.portas-wrap{
+  display:grid;grid-template-columns:1fr 1fr;gap:4rem;
+  max-width:1000px;margin:3rem auto;
+}
+.porta{
+  aspect-ratio:1/1.6;background:var(--marrom);
+  border:6px solid var(--dourado);border-radius:200px 200px 0 0;
+  position:relative;cursor:none;overflow:hidden;
+  box-shadow:var(--sombra-forte),inset 0 0 40px rgba(0,0,0,.4);
+  transition:transform .5s var(--transicao);
+  display:flex;align-items:flex-end;justify-content:center;
+  padding-bottom:2rem;
+}
+.porta::before{
+  content:'';position:absolute;top:15%;left:50%;transform:translateX(-50%);
+  width:40%;aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle,rgba(212,162,76,.3),transparent);
+  transition:all .5s;
+}
+.porta:hover{transform:translateY(-8px) scale(1.02)}
+.porta:hover::before{background:radial-gradient(circle,rgba(212,162,76,.7),transparent);top:5%;width:120%}
+.porta .macaneta{
+  position:absolute;top:55%;right:15%;
+  width:14px;height:14px;border-radius:50%;background:var(--dourado);
+  box-shadow:0 0 20px var(--dourado);
+}
+.porta .rotulo{
+  color:var(--bege);font-family:var(--font-titulo);
+  text-align:center;letter-spacing:.15em;font-size:.85rem;text-transform:uppercase;
+  position:relative;z-index:2;
+}
+.porta-conteudo{
+  display:none;max-width:800px;margin:3rem auto 0;text-align:center;
+  padding:2rem;background:rgba(0,0,0,.25);border:1px solid var(--dourado);
+  animation:heroFade .8s ease both;
+}
+.porta-conteudo.show{display:block}
+.porta-conteudo svg{width:100%;max-width:400px;margin:1rem auto}
+
+/* ============================================================
+   TELA 9 — DESCUBRA (mistura)
+   ============================================================ */
+#descubra{background:var(--papel);text-align:center;overflow:hidden}
+.mix-wrap{
+  position:relative;width:100%;max-width:800px;margin:3rem auto;
+  height:400px;
+}
+.mix-icone{
+  position:absolute;width:70px;height:70px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--terracota);
+  opacity:0;
+}
+.mix-icone svg{width:100%;height:100%}
+.mix-frase{
+  font-family:var(--font-titulo);font-size:clamp(1.4rem,2.6vw,2.2rem);
+  color:var(--vermelho);margin-top:3rem;opacity:0;
+  letter-spacing:.05em;
+}
+
+/* Efeito máquina de escrever */
+.typewriter{
+  border-right:2px solid var(--marrom);
+  white-space:nowrap;overflow:hidden;
+  display:inline-block;
+  animation:blink 1s step-end infinite;
+}
+@keyframes blink{50%{border-color:transparent}}
+
+/* ============================================================
+   TELA 10 — CONCLUSÃO
+   ============================================================ */
+#conclusao{
+  background:linear-gradient(180deg,var(--papel),var(--bege));
+  text-align:center;
+}
+#conclusao h2{margin-bottom:2rem}
+#conclusao .texto-final{
+  max-width:700px;margin:0 auto;font-size:1.25rem;line-height:1.9;
+}
+#conclusao .assinatura{
+  margin-top:3rem;font-family:var(--font-titulo);letter-spacing:.4em;
+  font-size:.8rem;color:var(--dourado);text-transform:uppercase;
+}
+
+/* ============================================================
+   TRANSIÇÃO PAPEL QUEIMANDO
+   ============================================================ */
+.burn{
+  position:fixed;inset:0;z-index:5000;pointer-events:none;
+  background:
+    radial-gradient(circle at var(--x,50%) var(--y,50%), transparent 0, transparent 30%, rgba(139,60,45,.9) 60%, #1a0a05 100%);
+  opacity:0;
+}
+
+/* ============================================================
+   RESPONSIVO — MOBILE FIRST REFINADO
+   ============================================================ */
+
+/* Tablet */
+@media(max-width:1024px){
+  section{padding:80px 5vw}
+  .floating-nav{left:12px;gap:10px}
+}
+
+/* Mobile (≤ 768px) */
+@media(max-width:768px){
+  body{cursor:auto;overflow-x:hidden}
+  .cursor-dot,.cursor-ring{display:none}
+  .floating-nav{display:none}
+
+  section{padding:70px 20px;min-height:auto}
+  section::after{left:20%;right:20%}
+  h1{font-size:clamp(2rem,9vw,2.8rem);line-height:1.1}
+  h2{font-size:clamp(1.5rem,6vw,2rem);margin-bottom:1rem}
+  h3{font-size:1.1rem}
+  p{font-size:1rem}
+  .ornament{font-size:.65rem;letter-spacing:.3em;gap:8px}
+  .ornament::before,.ornament::after{max-width:40px}
+
+  /* Menu topo */
+  .menu{top:12px;right:12px;gap:6px}
+  .menu button{padding:8px 10px;font-size:10px;letter-spacing:.08em}
+  .menu .dot{display:none}
+
+  /* Botão back-top */
+  .back-top{width:42px;height:42px;bottom:16px;right:16px;font-size:18px}
+
+  /* Barra de progresso */
+  .progress{height:2px}
+
+  /* HERO */
+  #hero{padding:0 16px}
+  #hero .hero-content{padding:0}
+  #hero .sub{font-size:1rem;margin:1rem auto 1.5rem;max-width:32ch}
+  .btn{padding:14px 24px;font-size:11px;letter-spacing:.25em}
+  .cordel{display:none} /* limpar hero no mobile */
+  #hero svg.scene{opacity:.9}
+
+  /* TELA 2 — Cartas */
+  .pergunta-titulo{font-size:1.1rem;margin:0 auto 2rem;padding:0 8px}
+  .cartas{grid-template-columns:1fr;gap:1.2rem;max-width:360px}
+  .carta{padding:1.8rem 1.4rem;transform:none!important}
+  .carta:hover{transform:translateY(-6px)!important}
+  .carta .selo{width:48px;height:48px;font-size:1.2rem;margin-bottom:1rem}
+
+  /* TELA 3 — Mapa */
+  .mapa-wrap{aspect-ratio:auto;height:560px;max-width:100%}
+  .node{width:78px;height:78px;font-size:.6rem;padding:6px;letter-spacing:.05em;border-width:1.5px}
+  .node:hover{transform:translate(-50%,-50%) scale(1.08)}
+  .mapa-info{font-size:1rem;padding:0 8px;margin-top:1rem}
+
+  /* TELA 4 — Espelho */
+  .espelho-grid{grid-template-columns:1fr;min-height:auto}
+  .espelho-lado{position:relative;height:50vh;padding:40px 20px;top:auto}
+  .espelho-lado svg{max-width:220px;width:70%}
+  .espelho-lado .label{font-size:.7rem;letter-spacing:.3em;margin-top:1rem}
+  #espelho{min-height:auto}
+  .espelho-perguntas{position:relative;left:auto;top:auto;transform:none;
+    width:100%;padding:2rem 20px;background:var(--marrom);order:3}
+  .espelho-perguntas p{
+    position:relative;left:auto;right:auto;
+    font-size:1.15rem;color:var(--bege);
+    text-shadow:none;margin:0;padding:1rem 0;
+    opacity:1;transform:none;
+    border-bottom:1px dashed rgba(245,233,210,.25);
+  }
+  .espelho-perguntas p:last-child{border-bottom:none}
+
+  /* TELA 5 — Símbolos */
+  .simbolos-grid{grid-template-columns:repeat(2,1fr);gap:1rem;max-width:420px}
+  .flip{height:200px}
+  .flip-face{padding:1rem}
+  .flip-face svg{width:56px;height:56px;margin-bottom:.6rem}
+  .flip-face h3{font-size:.9rem}
+  .flip-back p{font-size:.9rem}
+
+  /* TELA 6 — Timeline */
+  .timeline{padding-left:36px;margin-top:2rem}
+  .timeline::before{left:8px}
+  .tl-item{margin-bottom:2rem}
+  .tl-item::before{left:-32px;width:14px;height:14px;border-width:2px}
+  .tl-item h3{font-size:1rem}
+  .tl-item p{font-size:.95rem}
+  .tl-icon{display:none}
+
+  /* TELA 7 — Painel */
+  .painel-wrap{
+    aspect-ratio:auto;height:auto;
+    display:flex;flex-direction:column;align-items:center;
+    gap:.6rem;margin:2rem auto;
+  }
+  .painel-centro{
+    position:relative;top:auto;left:auto;transform:none;
+    width:180px;height:180px;padding:1.5rem;
+    font-size:.85rem;margin:0 auto 1.5rem;
+    animation:none;
+  }
+  .painel-centro span{animation:none}
+  .conceito{
+    position:relative;top:auto;left:auto;transform:none;
+    padding:10px 16px;font-size:.75rem;letter-spacing:.1em;
+    width:auto;
+  }
+  .conceito:hover{transform:scale(1.05)}
+  .conceito .exp{
+    position:relative;top:auto;left:auto;transform:none;
+    width:auto;max-width:280px;margin-top:6px;
+    display:none;font-size:.85rem;padding:8px 12px;
+  }
+  .conceito:hover .exp,.conceito:focus .exp,.conceito.open .exp{
+    display:block;opacity:1;
+  }
+
+  /* TELA 8 — Portas */
+  .portas-wrap{grid-template-columns:1fr;gap:1.5rem;max-width:280px;margin:2rem auto}
+  .porta{aspect-ratio:1/1.4;border-width:4px;border-radius:140px 140px 0 0;padding-bottom:1.2rem}
+  .porta .rotulo{font-size:.7rem;letter-spacing:.1em;padding:0 12px}
+  .porta .macaneta{width:10px;height:10px}
+  .porta-conteudo{padding:1.2rem;margin-top:1.5rem}
+  .porta-conteudo p{font-size:1rem}
+
+  /* TELA 9 — Descubra */
+  .mix-wrap{height:280px;max-width:100%}
+  .mix-icone{width:48px;height:48px}
+  .mix-frase{font-size:1.15rem;margin-top:1.5rem;padding:0 12px}
+
+  /* TELA 10 — Conclusão */
+  #conclusao .texto-final{font-size:1.05rem;line-height:1.7;padding:0 4px}
+  #conclusao .assinatura{font-size:.7rem;letter-spacing:.3em;margin-top:2rem}
+
+  /* Tooltip: mobile geralmente não faz hover — desativar para não poluir */
+  [data-tip]:hover::before{display:none}
+}
+
+/* Mobile pequeno (≤ 380px) */
+@media(max-width:380px){
+  section{padding:60px 14px}
+  .simbolos-grid{grid-template-columns:1fr;max-width:260px}
+  .flip{height:220px}
+  .mapa-wrap{height:520px}
+  .node{width:70px;height:70px;font-size:.55rem}
+  h1{font-size:1.9rem}
+}
+
+/* Landscape mobile */
+@media(max-height:500px) and (orientation:landscape){
+  section{min-height:auto;padding:50px 5vw}
+  #hero{min-height:100vh}
+}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition:none!important}
+}
+
+/* ============================================================
+   PATCH DE RESPONSIVIDADE — sem alterar identidade visual
+   ============================================================ */
+:root{
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-left:env(safe-area-inset-left,0px);
+  --safe-right:env(safe-area-inset-right,0px);
+}
+html,body{max-width:100%;overflow-x:hidden}
+img,svg,video{max-width:100%;height:auto}
+section{max-width:100vw}
+
+/* Hamburger — invisível no desktop */
+.menu-toggle{
+  display:none;
+  width:44px;height:44px;border-radius:50%;
+  background:var(--papel);border:var(--borda);
+  color:var(--tinta);cursor:pointer;
+  box-shadow:var(--sombra);
+  position:relative;padding:0;
+  -webkit-tap-highlight-color:transparent;
+}
+.menu-toggle span{
+  position:absolute;left:11px;right:11px;height:2px;
+  background:var(--tinta);border-radius:2px;
+  transition:transform .3s var(--transicao),opacity .3s;
+}
+.menu-toggle span:nth-child(1){top:14px}
+.menu-toggle span:nth-child(2){top:21px}
+.menu-toggle span:nth-child(3){top:28px}
+.menu.open .menu-toggle span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.menu.open .menu-toggle span:nth-child(2){opacity:0}
+.menu.open .menu-toggle span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+/* Ajustes leves de safe area no menu e back-top */
+.menu{padding-top:var(--safe-top);padding-right:var(--safe-right)}
+.back-top{margin-bottom:var(--safe-bottom);margin-right:var(--safe-right)}
+
+/* MOBILE (≤ 768px) — sobrescritas fortes */
+@media(max-width:768px){
+  /* Menu vira drawer lateral */
+  .menu{
+    top:0;right:0;left:auto;
+    padding:calc(12px + var(--safe-top)) 12px 12px;
+    gap:8px;flex-direction:row;align-items:center;
+  }
+  .menu-toggle{display:inline-flex;align-items:center;justify-content:center}
+  .menu #toggleSom,.menu #toggleTema{
+    display:none;
+    position:fixed;right:12px;
+    background:var(--papel);color:var(--tinta);
+    border:var(--borda);border-radius:999px;
+    padding:12px 18px;font-family:var(--font-ui);
+    font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    box-shadow:var(--sombra-forte);
+    z-index:101;min-height:44px;
+    animation:menuIn .35s var(--transicao) both;
+  }
+  .menu.open #toggleSom{display:inline-flex;top:calc(70px + var(--safe-top))}
+  .menu.open #toggleTema{display:inline-flex;top:calc(120px + var(--safe-top))}
+  @keyframes menuIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+
+  /* Cartas — travar rotações e transformações via inline */
+  .carta{transform:none!important;rotate:0deg!important}
+  .cartas{margin:0 auto;padding:0 4px}
+
+  /* MAPA — layout vertical */
+  #mapa .mapa-wrap{
+    aspect-ratio:auto!important;height:auto!important;
+    display:flex;flex-direction:column;align-items:center;
+    gap:12px;padding:8px 0;
+  }
+  #mapa .mapa-wrap svg#mapaLines{
+    position:absolute;inset:0;opacity:.25;
+    width:100%;height:100%;pointer-events:none;
+  }
+  #mapa .node{
+    position:relative!important;
+    left:auto!important;top:auto!important;
+    transform:none!important;
+    width:min(78vw,320px);height:auto;min-height:64px;
+    border-radius:999px;padding:14px 18px;
+    font-size:.75rem;letter-spacing:.08em;
+    display:flex;align-items:center;justify-content:center;
+    text-align:center;
+  }
+  #mapa .node:hover,#mapa .node.active{transform:scale(1.04)!important}
+  #mapa .node.active{background:var(--terracota);color:var(--bege)}
+
+  /* PAINEL / TEIA DE VOZES — vertical, sem sobreposição */
+  #painel .painel-wrap{
+    position:relative!important;
+    aspect-ratio:auto!important;height:auto!important;
+    display:flex;flex-direction:column;align-items:center;
+    gap:10px;padding:8px 0;max-width:100%;
+  }
+  #painel .painel-centro{
+    position:relative!important;
+    top:auto!important;left:auto!important;
+    transform:none!important;
+    margin:0 auto 1.2rem;
+    animation:none!important;
+    width:min(72vw,220px);height:min(72vw,220px);
+  }
+  #painel .painel-centro span{animation:none!important}
+  #painel .conceito{
+    position:relative!important;
+    left:auto!important;top:auto!important;
+    transform:none!important;
+    width:min(88vw,360px);
+    display:block;text-align:center;
+    padding:14px 16px;font-size:.78rem;
+    min-height:44px;
+  }
+  #painel .conceito:hover{transform:scale(1.02)!important}
+  #painel .conceito .exp{
+    position:relative!important;
+    left:auto!important;top:auto!important;transform:none!important;
+    width:auto;max-width:100%;margin-top:8px;
+    display:none;opacity:1;pointer-events:auto;
+  }
+  #painel .conceito.open .exp{display:block}
+
+  /* Portas: manter grid 1col já definido; garantir sem overflow */
+  .portas-wrap{padding:0 4px}
+
+  /* Reduz efeitos pesados no mobile */
+  .painel-centro{box-shadow:0 0 20px rgba(212,162,76,.35)!important}
+  #hero .hero-content{will-change:auto}
+
+  /* Tap targets mínimos */
+  .menu button,.btn,.porta,.conceito,.node,.flip,.carta{
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  /* Back-top safe-area */
+  .back-top{bottom:calc(16px + var(--safe-bottom));right:calc(16px + var(--safe-right))}
+}
+
+/* Breakpoints extra */
+@media(max-width:600px){
+  section{padding:64px 18px}
+  h1{font-size:clamp(1.9rem,8vw,2.6rem)}
+}
+@media(max-width:480px){
+  section{padding:58px 16px}
+  .simbolos-grid{grid-template-columns:repeat(2,1fr);gap:.8rem}
+}
+@media(max-width:360px){
+  section{padding:54px 12px}
+  .simbolos-grid{grid-template-columns:1fr;max-width:260px;margin-inline:auto}
+  #painel .conceito{font-size:.72rem}
+  #mapa .node{width:min(84vw,300px)}
+}
+
+/* Desktop restaura menu-toggle oculto */
+@media(min-width:769px){
+  .menu-toggle{display:none!important}
+}
+</style>
+
+</head>
+<body>
+
+<!-- CURSOR -->
+<div class="cursor-ring" aria-hidden="true"></div>
+<div class="cursor-dot" aria-hidden="true"></div>
+
+<!-- BARRA DE PROGRESSO -->
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<!-- MENU FLUTUANTE -->
+<div class="menu" id="menuBar">
+  <span class="dot" aria-hidden="true"></span>
+  <button id="toggleSom" data-tip="Som ambiente" aria-label="Alternar som ambiente">♪ Som</button>
+  <button id="toggleTema" data-tip="Modo claro/escuro" aria-label="Alternar tema">☾ Tema</button>
+  <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="menuBar">
+    <span></span><span></span><span></span>
+  </button>
+</div>
+
+
+<!-- NAV LATERAL -->
+<nav class="floating-nav" aria-label="Navegação por seções">
+  <a href="#hero" data-label="Início" class="active"></a>
+  <a href="#pergunta" data-label="Pergunta"></a>
+  <a href="#mapa" data-label="Conexões"></a>
+  <a href="#espelho" data-label="Espelho"></a>
+  <a href="#simbolos" data-label="Símbolos"></a>
+  <a href="#timeline" data-label="Origens"></a>
+  <a href="#painel" data-label="Painel"></a>
+  <a href="#portas" data-label="Portas"></a>
+  <a href="#descubra" data-label="Descoberta"></a>
+  <a href="#conclusao" data-label="Fim"></a>
+</nav>
+
+<!-- BOTÃO TOPO -->
+<button class="back-top" id="backTop" aria-label="Voltar ao topo" data-tip="Voltar ao topo">↑</button>
+
+<!-- TRANSIÇÃO -->
+<div class="burn" id="burn" aria-hidden="true"></div>
+
+<!-- ============================================================
+     TELA 1 — HERO
+============================================================ -->
+<section id="hero" aria-labelledby="hero-title">
+  <div class="sky"></div>
+  <svg class="scene" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <!-- chão -->
+    <path d="M0,700 Q400,660 800,690 T1600,680 L1600,900 L0,900 Z" fill="#8b4a2b" opacity=".9"/>
+    <path d="M0,750 Q400,720 800,740 T1600,730 L1600,900 L0,900 Z" fill="#5a2d1a" opacity=".9"/>
+    <!-- sol -->
+    <circle cx="800" cy="620" r="90" fill="#f0c26a" opacity=".85"/>
+    <!-- igreja ao fundo esquerda -->
+    <g transform="translate(240,540)">
+      <rect x="0" y="40" width="120" height="120" fill="#4b2e2a"/>
+      <polygon points="0,40 60,-10 120,40" fill="#3a221d"/>
+      <rect x="52" y="70" width="16" height="40" fill="#f5e9d2"/>
+      <rect x="52" y="-40" width="16" height="60" fill="#4b2e2a"/>
+      <rect x="42" y="-50" width="36" height="12" fill="#4b2e2a"/>
+      <rect x="20" y="120" width="20" height="40" fill="#2a1a15"/>
+    </g>
+    <!-- celeiro direita -->
+    <g transform="translate(1180,560)">
+      <polygon points="0,40 100,-10 200,40 200,140 0,140" fill="#8E3B2E"/>
+      <polygon points="0,40 100,-10 200,40" fill="#6a2b21"/>
+      <rect x="80" y="70" width="40" height="70" fill="#4b2e2a"/>
+      <line x1="100" y1="70" x2="100" y2="140" stroke="#2a1a15" stroke-width="2"/>
+      <path d="M20,60 L180,60 M20,80 L180,80" stroke="#6a2b21" stroke-width="1" opacity=".5"/>
+    </g>
+    <!-- árvore seca central-esquerda -->
+    <g transform="translate(600,400)">
+      <path d="M0,300 Q-5,200 -20,100 Q-30,50 -50,0 M-20,180 Q10,140 40,150 M-15,120 Q30,100 60,80 M-5,220 Q-40,200 -70,190"
+        stroke="#2a1a10" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M-30,150 Q-45,130 -60,140 M20,120 Q45,105 55,125"
+        stroke="#2a1a10" stroke-width="3" fill="none"/>
+    </g>
+    <!-- passarinho -->
+    <path d="M700,200 q10,-10 20,0 q10,-10 20,0" stroke="#4b2e2a" stroke-width="2" fill="none" opacity=".7"/>
+    <path d="M900,240 q8,-8 16,0 q8,-8 16,0" stroke="#4b2e2a" stroke-width="2" fill="none" opacity=".6"/>
+  </svg>
+
+  <!-- Cordéis balançando -->
+  <div class="cordel" style="left:15%;height:70vh;" data-cordel>
+    <div class="flag" style="top:20%"></div>
+    <div class="flag" style="top:40%;background:#D4A24C"></div>
+    <div class="flag" style="top:60%;background:#8E3B2E"></div>
+  </div>
+  <div class="cordel" style="right:15%;height:60vh;" data-cordel>
+    <div class="flag" style="top:15%;background:#D4A24C"></div>
+    <div class="flag" style="top:35%"></div>
+    <div class="flag" style="top:55%;background:#4B2E2A"></div>
+  </div>
+
+  <div class="hero-content">
+    <div class="ornament">✦ Uma experiência intertextual ✦</div>
+    <h1 id="hero-title">Quando duas histórias<br/>conversam</h1>
+    <p class="sub">Nem sempre personagens sabem que pertencem a histórias diferentes.</p>
+    <button class="btn" id="entrar" aria-label="Iniciar experiência">Entrar →</button>
+  </div>
+</section>
+
+<!-- ============================================================
+     TELA 2 — PERGUNTA / CARTAS
+============================================================ -->
+<section id="pergunta" aria-labelledby="pergunta-title">
+  <div class="ornament" style="justify-content:center">✦ Uma pergunta ✦</div>
+  <h2 id="pergunta-title" style="text-align:center">Você acredita que personagens<br/>conseguem atravessar histórias?</h2>
+  <p class="pergunta-titulo">Três cartas antigas repousam sobre a mesa. Vire-as com o olhar.</p>
+
+  <div class="cartas">
+    <article class="carta" style="--rot:-3deg" data-tip="Reconhece esta figura?">
+      <div class="selo" aria-hidden="true">I</div>
+      <h3>Aquele que nunca perde</h3>
+      <ul>
+        <li>Extremamente esperto</li>
+        <li>Nunca perde uma negociação</li>
+        <li>Sempre encontra uma saída</li>
+      </ul>
+    </article>
+    <article class="carta" style="--rot:2deg" data-tip="Reconhece esta figura?">
+      <div class="selo" aria-hidden="true">II</div>
+      <h3>Aquela que muda tudo</h3>
+      <ul>
+        <li>Enorme compaixão</li>
+        <li>Surge quando ninguém espera</li>
+        <li>Muda o destino das pessoas</li>
+      </ul>
+    </article>
+    <article class="carta" style="--rot:-2deg" data-tip="Reconhece esta figura?">
+      <div class="selo" aria-hidden="true">III</div>
+      <h3>Aquele que conta moedas</h3>
+      <ul>
+        <li>Extremamente rico</li>
+        <li>Teme perder tudo</li>
+        <li>Não confia em ninguém</li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+<!-- ============================================================
+     TELA 3 — MAPA DE CONEXÕES
+============================================================ -->
+<section id="mapa" aria-labelledby="mapa-title">
+  <div class="ornament" style="justify-content:center">✦ Mapa de conexões ✦</div>
+  <h2 id="mapa-title" style="text-align:center">Fios que ligam figuras distantes</h2>
+  <p style="text-align:center;margin:0 auto 2rem;max-width:600px;font-style:italic">Passe o cursor sobre os círculos. Observe as linhas acenderem.</p>
+
+  <div class="mapa-wrap" id="mapaWrap">
+    <svg id="mapaLines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+    <!-- nós criados via JS -->
+  </div>
+
+  <div class="mapa-info" id="mapaInfo">Toque um círculo para ler sua essência.</div>
+</section>
+
+<!-- ============================================================
+     TELA 4 — ESPELHO
+============================================================ -->
+<section id="espelho" aria-labelledby="espelho-title">
+  <h2 id="espelho-title" class="sr-only">O espelho</h2>
+  <div class="espelho-grid">
+    <div class="espelho-lado vila">
+      <svg viewBox="0 0 400 400" aria-hidden="true">
+        <rect x="60" y="200" width="80" height="100" fill="#4b2e2a"/>
+        <polygon points="60,200 100,160 140,200" fill="#2a1a15"/>
+        <rect x="90" y="240" width="20" height="60" fill="#f5e9d2"/>
+        <rect x="180" y="180" width="100" height="120" fill="#6a3628"/>
+        <polygon points="180,180 230,130 280,180" fill="#3a221d"/>
+        <rect x="220" y="220" width="20" height="80" fill="#f5e9d2"/>
+        <rect x="200" y="200" width="20" height="20" fill="#f5e9d2"/>
+        <rect x="0" y="300" width="400" height="100" fill="#8b4a2b"/>
+        <path d="M0,300 Q100,280 200,290 T400,285" stroke="#5a2d1a" stroke-width="2" fill="none"/>
+      </svg>
+      <div class="label">Uma pequena vila</div>
+    </div>
+    <div class="espelho-lado fazenda">
+      <svg viewBox="0 0 400 400" aria-hidden="true">
+        <polygon points="80,180 200,110 320,180 320,300 80,300" fill="#D4A24C"/>
+        <polygon points="80,180 200,110 320,180" fill="#a37a2f"/>
+        <rect x="170" y="220" width="60" height="80" fill="#4b2e2a"/>
+        <rect x="100" y="240" width="30" height="30" fill="#8E3B2E"/>
+        <rect x="270" y="240" width="30" height="30" fill="#8E3B2E"/>
+        <rect x="0" y="300" width="400" height="100" fill="#3a221d"/>
+        <!-- porco -->
+        <ellipse cx="60" cy="330" rx="25" ry="15" fill="#f5cba0"/>
+        <circle cx="80" cy="325" r="10" fill="#f5cba0"/>
+        <circle cx="83" cy="323" r="2" fill="#000"/>
+        <!-- moedas -->
+        <circle cx="340" cy="340" r="6" fill="#D4A24C"/>
+        <circle cx="352" cy="345" r="6" fill="#D4A24C"/>
+        <circle cx="346" cy="332" r="6" fill="#D4A24C"/>
+      </svg>
+      <div class="label">Uma fazenda distante</div>
+    </div>
+    <div class="espelho-perguntas" id="espelhoQ">
+      <p data-i="0">O que acontece quando a ambição encontra a fé?</p>
+      <p data-i="1">E quando o dinheiro vale mais que as pessoas?</p>
+      <p data-i="2">E quando a justiça não vem dos homens?</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     TELA 5 — SÍMBOLOS
+============================================================ -->
+<section id="simbolos" aria-labelledby="simbolos-title">
+  <div class="ornament" style="justify-content:center">✦ Símbolos ✦</div>
+  <h2 id="simbolos-title" style="text-align:center">Vire cada carta. Leia seu peso.</h2>
+
+  <div class="simbolos-grid" id="simbolosGrid"></div>
+</section>
+
+<!-- ============================================================
+     TELA 6 — LINHA DO TEMPO
+============================================================ -->
+<section id="timeline" aria-labelledby="tl-title">
+  <div class="ornament" style="justify-content:center">✦ Origens ✦</div>
+  <h2 id="tl-title" style="text-align:center">Uma história conversa com outras</h2>
+  <p style="text-align:center;margin:0 auto 2rem;max-width:600px;font-style:italic">Cada obra carrega, sem saber, o eco daquelas que vieram antes.</p>
+
+  <div class="timeline">
+    <div class="tl-item">
+      <svg class="tl-icon" viewBox="0 0 40 40" aria-hidden="true"><rect x="6" y="10" width="28" height="24" fill="none" stroke="#B85C38" stroke-width="2"/><path d="M6 10 L20 4 L34 10" fill="none" stroke="#B85C38" stroke-width="2"/></svg>
+      <h3>Antiguidade greco-latina</h3>
+      <p>Os primeiros palcos ridicularizam o avarento. O riso já era arma.</p>
+    </div>
+    <div class="tl-item">
+      <svg class="tl-icon" viewBox="0 0 40 40" aria-hidden="true"><circle cx="14" cy="20" r="8" fill="none" stroke="#B85C38" stroke-width="2"/><circle cx="26" cy="20" r="8" fill="none" stroke="#B85C38" stroke-width="2"/></svg>
+      <h3>Comédia clássica</h3>
+      <p>Máscaras trocadas, engano e esperteza — a farsa nasce.</p>
+    </div>
+    <div class="tl-item">
+      <svg class="tl-icon" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4 L20 36 M8 20 L32 20" stroke="#B85C38" stroke-width="2"/></svg>
+      <h3>Teatro religioso medieval</h3>
+      <p>Autos, milagres e figuras sagradas invadem o palco popular.</p>
+    </div>
+    <div class="tl-item">
+      <svg class="tl-icon" viewBox="0 0 40 40" aria-hidden="true"><rect x="6" y="6" width="28" height="28" fill="none" stroke="#B85C38" stroke-width="2"/><path d="M6 14 H34 M6 22 H34 M6 30 H34" stroke="#B85C38" stroke-width="1"/></svg>
+      <h3>Cordel nordestino</h3>
+      <p>Versos em folhetos pendurados no barbante contam do sertão ao mundo.</p>
+    </div>
+    <div class="tl-item">
+      <svg class="tl-icon" viewBox="0 0 40 40" aria-hidden="true"><path d="M4 34 Q20 4 36 34" fill="none" stroke="#B85C38" stroke-width="2"/><circle cx="20" cy="30" r="3" fill="#B85C38"/></svg>
+      <h3>Teatro brasileiro moderno</h3>
+      <p>Tudo se reúne — o riso, a fé, a crítica, o povo — num palco só.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     TELA 7 — PAINEL INTERTEXTUALIDADE
+============================================================ -->
+<section id="painel" aria-labelledby="painel-title">
+  <div class="ornament" style="justify-content:center">✦ O painel ✦</div>
+  <h2 id="painel-title">Uma teia de vozes</h2>
+
+  <div class="painel-wrap" id="painelWrap">
+    <div class="painel-centro"><span>Uma obra nunca<br/>nasce sozinha.</span></div>
+    <!-- conceitos criados via JS -->
+  </div>
+</section>
+
+<!-- ============================================================
+     TELA 8 — DUAS PORTAS
+============================================================ -->
+<section id="portas" aria-labelledby="portas-title">
+  <div class="ornament" style="justify-content:center;color:var(--dourado)">✦ Escolha seu caminho ✦</div>
+  <h2 id="portas-title">Duas portas. Dois destinos.</h2>
+
+  <div class="portas-wrap">
+    <div class="porta" data-porta="1" data-tip="Uma história de esperteza" role="button" tabindex="0" aria-label="Porta 1">
+      <span class="macaneta"></span>
+      <span class="rotulo">A esperteza vence a pobreza</span>
+    </div>
+    <div class="porta" data-porta="2" data-tip="Uma história de ganância" role="button" tabindex="0" aria-label="Porta 2">
+      <span class="macaneta"></span>
+      <span class="rotulo">A ganância destrói vínculos</span>
+    </div>
+  </div>
+
+  <div class="porta-conteudo" id="porta1c">
+    <svg viewBox="0 0 400 200" aria-hidden="true">
+      <rect x="20" y="140" width="360" height="40" fill="#8b4a2b"/>
+      <path d="M50 140 Q60 100 90 110 Q110 80 140 100 Q160 70 200 90 Q240 70 260 100 Q290 80 310 110 Q340 100 350 140" stroke="#4b2e2a" stroke-width="3" fill="none"/>
+      <circle cx="200" cy="60" r="20" fill="#D4A24C"/>
+      <path d="M100 30 h200 M100 30 v10 M300 30 v10" stroke="#4b2e2a" stroke-width="1"/>
+      <rect x="150" y="35" width="20" height="12" fill="#B85C38"/>
+      <rect x="230" y="35" width="20" height="12" fill="#8E3B2E"/>
+    </svg>
+    <p style="font-style:italic;font-size:1.2rem">Um cajado. Um riso. Uma saída onde ninguém enxergava.</p>
+  </div>
+
+  <div class="porta-conteudo" id="porta2c">
+    <svg viewBox="0 0 400 200" aria-hidden="true">
+      <rect x="20" y="140" width="360" height="40" fill="#3a221d"/>
+      <circle cx="100" cy="120" r="18" fill="#D4A24C"/>
+      <circle cx="130" cy="130" r="15" fill="#D4A24C"/>
+      <circle cx="115" cy="105" r="14" fill="#D4A24C"/>
+      <ellipse cx="280" cy="130" rx="35" ry="20" fill="#f5cba0"/>
+      <circle cx="310" cy="125" r="14" fill="#f5cba0"/>
+      <circle cx="314" cy="122" r="2" fill="#000"/>
+      <path d="M200 60 v40 M180 80 h40" stroke="#D4A24C" stroke-width="4"/>
+    </svg>
+    <p style="font-style:italic;font-size:1.2rem">Moedas empilhadas. Um porco engordado. Uma cruz que ninguém escuta.</p>
+  </div>
+</section>
+
+<!-- ============================================================
+     TELA 9 — DESCUBRA
+============================================================ -->
+<section id="descubra" aria-labelledby="descubra-title">
+  <div class="ornament" style="justify-content:center">✦ Descubra ✦</div>
+  <h2 id="descubra-title">Os elementos começam a se misturar</h2>
+
+  <div class="mix-wrap" id="mixWrap"></div>
+
+  <p class="mix-frase" id="mixFrase"></p>
+</section>
+
+<!-- ============================================================
+     TELA 10 — CONCLUSÃO
+============================================================ -->
+<section id="conclusao" aria-labelledby="fim-title">
+  <div class="ornament" style="justify-content:center">✦ Conclusão ✦</div>
+  <h2 id="fim-title">A verdadeira intertextualidade</h2>
+  <div class="texto-final">
+    <p>Grandes histórias nunca caminham sozinhas. Elas dialogam através de temas que se repetem, de personagens que se reencontram sob outros nomes, de críticas sociais que atravessam séculos, de símbolos que reaparecem em novos contextos, do humor que denuncia e da cultura popular que resiste.</p>
+    <p style="margin-top:1.5rem">Reconhecer essas conexões — perceber o eco de uma obra dentro de outra — torna a leitura infinitamente mais rica. Cada texto passa a ser uma janela para muitos outros.</p>
+    <p style="margin-top:1.5rem;font-style:italic;color:var(--terracota)">Você já cruzou duas fronteiras sem que ninguém as nomeasse.</p>
+  </div>
+  <div class="assinatura">✦ Fim da travessia ✦</div>
+</section>
+
+<script>
+/* ============================================================
+   SCRIPT PRINCIPAL
+   ============================================================ */
+(() => {
+  gsap.registerPlugin(ScrollTrigger);
+
+  /* -------- CURSOR -------- */
+  const dot = document.querySelector('.cursor-dot');
+  const ring = document.querySelector('.cursor-ring');
+  let mx=0,my=0,rx=0,ry=0;
+  window.addEventListener('mousemove', e=>{
+    mx=e.clientX;my=e.clientY;
+    dot.style.transform=`translate(${mx}px,${my}px) translate(-50%,-50%)`;
+  });
+  (function loop(){
+    rx += (mx-rx)*.15; ry += (my-ry)*.15;
+    ring.style.transform=`translate(${rx}px,${ry}px) translate(-50%,-50%)`;
+    requestAnimationFrame(loop);
+  })();
+  document.addEventListener('mouseover', e=>{
+    if(e.target.closest('button, a, .carta, .flip, .node, .porta, .conceito, [data-tip]'))
+      document.body.classList.add('cursor-active');
+    else document.body.classList.remove('cursor-active');
+  });
+
+  /* -------- PROGRESS + BACK TOP -------- */
+  const prog=document.getElementById('progress');
+  const back=document.getElementById('backTop');
+  window.addEventListener('scroll', ()=>{
+    const h=document.documentElement;
+    const p=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100;
+    prog.style.width=p+'%';
+    back.classList.toggle('show', h.scrollTop>600);
+  });
+  back.addEventListener('click', ()=>window.scrollTo({top:0,behavior:'smooth'}));
+
+  /* -------- NAV LATERAL ATIVA -------- */
+  const navLinks=document.querySelectorAll('.floating-nav a');
+  const sections=[...document.querySelectorAll('section')];
+  window.addEventListener('scroll', ()=>{
+    const y=window.scrollY+window.innerHeight/3;
+    sections.forEach(s=>{
+      if(y>=s.offsetTop && y<s.offsetTop+s.offsetHeight){
+        navLinks.forEach(a=>a.classList.toggle('active', a.getAttribute('href')==='#'+s.id));
+      }
+    });
+  });
+  navLinks.forEach(a=>a.addEventListener('click', e=>{
+    e.preventDefault();
+    burnTransition(()=>{
+      document.querySelector(a.getAttribute('href')).scrollIntoView({behavior:'smooth'});
+    });
+  }));
+
+  /* -------- TRANSIÇÃO PAPEL QUEIMANDO -------- */
+  const burn=document.getElementById('burn');
+  function burnTransition(cb){
+    burn.style.setProperty('--x', (mx||innerWidth/2)+'px');
+    burn.style.setProperty('--y', (my||innerHeight/2)+'px');
+    gsap.timeline()
+      .to(burn,{opacity:1,duration:.5,ease:'power2.in',onComplete:cb})
+      .to(burn,{opacity:0,duration:.6,delay:.2,ease:'power2.out'});
+  }
+
+  /* -------- TEMA -------- */
+  document.getElementById('toggleTema').addEventListener('click',()=>{
+    document.body.classList.toggle('dark');
+  });
+
+  /* -------- SOM AMBIENTE (WebAudio: vento suave + sino) -------- */
+  let audioCtx=null, ambienteOn=false, ambienteNodes=[];
+  document.getElementById('toggleSom').addEventListener('click', (e)=>{
+    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    ambienteOn=!ambienteOn;
+    e.currentTarget.textContent = ambienteOn?'♪ Silenciar':'♪ Som';
+    if(ambienteOn) startAmbiente(); else stopAmbiente();
+  });
+  function startAmbiente(){
+    const ctx=audioCtx;
+    // vento: ruído filtrado
+    const buffer=ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate);
+    const d=buffer.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*.5;
+    const src=ctx.createBufferSource(); src.buffer=buffer; src.loop=true;
+    const filt=ctx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=400;
+    const gain=ctx.createGain(); gain.gain.value=.08;
+    src.connect(filt).connect(gain).connect(ctx.destination);
+    src.start();
+    ambienteNodes.push(src,gain);
+    // sino distante ocasional
+    const bell=setInterval(()=>{
+      if(!ambienteOn) return;
+      const osc=ctx.createOscillator(); osc.frequency.value=440+Math.random()*200;
+      const g=ctx.createGain(); g.gain.value=0;
+      osc.connect(g).connect(ctx.destination);
+      osc.start();
+      g.gain.linearRampToValueAtTime(.05, ctx.currentTime+.05);
+      g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+3);
+      osc.stop(ctx.currentTime+3);
+    }, 12000);
+    ambienteNodes.push({stop:()=>clearInterval(bell)});
+  }
+  function stopAmbiente(){
+    ambienteNodes.forEach(n=>{ try{n.stop&&n.stop()}catch(_){} });
+    ambienteNodes=[];
+  }
+
+  /* -------- HERO ANIMS -------- */
+  gsap.from('#hero .hero-content > *', {opacity:0, y:40, stagger:.15, duration:1, ease:'power3.out'});
+  document.querySelectorAll('[data-cordel]').forEach((c,i)=>{
+    gsap.to(c,{rotation:i%2?3:-3, duration:3+Math.random(), yoyo:true, repeat:-1, ease:'sine.inOut', transformOrigin:'top'});
+  });
+  document.getElementById('entrar').addEventListener('click', ()=>{
+    burnTransition(()=>document.getElementById('pergunta').scrollIntoView({behavior:'smooth'}));
+  });
+
+  /* -------- SCROLL REVEAL PADRÃO -------- */
+  gsap.utils.toArray('section h2, section p, .carta, .flip, .porta, .conceito, .tl-item').forEach(el=>{
+    gsap.from(el,{
+      scrollTrigger:{trigger:el,start:'top 85%'},
+      opacity:0, y:30, duration:1, ease:'power3.out'
+    });
+  });
+  document.querySelectorAll('.tl-item').forEach(el=>{
+    ScrollTrigger.create({trigger:el,start:'top 80%',onEnter:()=>el.classList.add('in')});
+  });
+
+  /* -------- TELA 3: MAPA DE CONEXÕES -------- */
+  const nodesData=[
+    {id:'a',label:'O esperto',x:20,y:30,tags:['esperteza','humor','pobreza','justiça']},
+    {id:'b',label:'A compassiva',x:50,y:15,tags:['religião','justiça','moral']},
+    {id:'c',label:'O avarento',x:80,y:30,tags:['ganância','poder','herança']},
+    {id:'d',label:'O padre',x:25,y:75,tags:['religião','moral','humor']},
+    {id:'e',label:'O trapaceado',x:75,y:75,tags:['ganância','herança','poder']},
+    {id:'f',label:'O povo',x:50,y:60,tags:['pobreza','justiça','cordel']},
+  ];
+  const infos={
+    a:'Fala fino, escapa fácil. A pobreza afia a língua.',
+    b:'Chega quando ninguém a chama. Dobra o destino.',
+    c:'Conta moedas, teme a morte. Nunca dorme em paz.',
+    d:'Entre o riso e a fé, escolhe os dois.',
+    e:'Perde o que julgava seu — e descobre nunca ter tido.',
+    f:'Ri para não chorar. Canta para não esquecer.',
+  };
+  const mapaWrap=document.getElementById('mapaWrap');
+  const mapaLines=document.getElementById('mapaLines');
+  const mapaInfo=document.getElementById('mapaInfo');
+  nodesData.forEach(n=>{
+    const el=document.createElement('div');
+    el.className='node'; el.textContent=n.label;
+    el.style.left=n.x+'%'; el.style.top=n.y+'%';
+    el.dataset.id=n.id;
+    el.setAttribute('data-tip','Clique para revelar');
+    el.addEventListener('mouseenter',()=>highlight(n.id));
+    el.addEventListener('mouseleave',()=>highlight(null));
+    el.addEventListener('click',()=>{
+      document.querySelectorAll('.node').forEach(x=>x.classList.remove('active'));
+      el.classList.add('active');
+      typewriter(mapaInfo, infos[n.id]);
+    });
+    mapaWrap.appendChild(el);
+  });
+  // desenhar linhas entre nós que compartilham tags
+  const svgNS='http://www.w3.org/2000/svg';
+  const lines=[];
+  for(let i=0;i<nodesData.length;i++){
+    for(let j=i+1;j<nodesData.length;j++){
+      const a=nodesData[i], b=nodesData[j];
+      const shared=a.tags.filter(t=>b.tags.includes(t));
+      if(shared.length){
+        const line=document.createElementNS(svgNS,'line');
+        line.setAttribute('x1',a.x); line.setAttribute('y1',a.y);
+        line.setAttribute('x2',b.x); line.setAttribute('y2',b.y);
+        line.setAttribute('stroke','#B85C38');
+        line.setAttribute('stroke-width','.3');
+        line.setAttribute('opacity','.3');
+        line.dataset.ids=a.id+','+b.id;
+        mapaLines.appendChild(line);
+        lines.push(line);
+      }
+    }
+  }
+  function highlight(id){
+    lines.forEach(l=>{
+      if(id && l.dataset.ids.split(',').includes(id)){
+        l.setAttribute('stroke','#D4A24C');
+        l.setAttribute('stroke-width','.6');
+        l.setAttribute('opacity','1');
+        l.setAttribute('filter','drop-shadow(0 0 3px #D4A24C)');
+      } else {
+        l.setAttribute('stroke','#B85C38');
+        l.setAttribute('stroke-width','.3');
+        l.setAttribute('opacity','.3');
+        l.removeAttribute('filter');
+      }
+    });
+  }
+
+  /* -------- TYPEWRITER -------- */
+  function typewriter(el, text){
+    el.textContent='';
+    el.classList.add('typewriter');
+    let i=0;
+    const iv=setInterval(()=>{
+      el.textContent+=text[i++];
+      if(i>=text.length){
+        clearInterval(iv);
+        setTimeout(()=>el.classList.remove('typewriter'),1500);
+      }
+    },35);
+  }
+
+  /* -------- TELA 4: ESPELHO — perguntas alternando -------- */
+  const perguntas=document.querySelectorAll('#espelhoQ p');
+  ScrollTrigger.create({
+    trigger:'#espelho', start:'top top', end:'bottom bottom',
+    onUpdate:self=>{
+      const p=self.progress;
+      const idx=Math.min(perguntas.length-1, Math.floor(p*perguntas.length));
+      perguntas.forEach((el,i)=>el.classList.toggle('visible', i===idx));
+    }
+  });
+
+  /* -------- TELA 5: SÍMBOLOS -------- */
+  const simbolos=[
+    {sym:mask(),  nome:'Máscara de teatro', exp:'O disfarce que revela a verdade mais funda do humano.'},
+    {sym:coin(),  nome:'Saco de moedas',    exp:'Peso que curva as costas e endurece o coração.'},
+    {sym:rosary(),nome:'Rosário',           exp:'Fé que se enrola nos dedos — às vezes fingimento, às vezes salvação.'},
+    {sym:pig(),   nome:'Porco',             exp:'Símbolo de fartura e de morte. Tudo se engorda para ser tomado.'},
+    {sym:staff(), nome:'Cajado',            exp:'Do pastor e do peregrino. Guia quem caminha e mede o chão.'},
+    {sym:cross(), nome:'Cruz',              exp:'Justiça que não vem dos homens. E, às vezes, ironia dos céus.'},
+  ];
+  const grid=document.getElementById('simbolosGrid');
+  simbolos.forEach(s=>{
+    const el=document.createElement('div');
+    el.className='flip'; el.setAttribute('data-tip','Clique para virar');
+    el.innerHTML=`
+      <div class="flip-inner">
+        <div class="flip-face flip-front">${s.sym}<h3>${s.nome}</h3></div>
+        <div class="flip-face flip-back"><h3>${s.nome}</h3><p style="margin-top:1rem">${s.exp}</p></div>
+      </div>`;
+    el.addEventListener('click',()=>el.classList.toggle('active'));
+    grid.appendChild(el);
+  });
+
+  function svg(inner){return `<svg viewBox="0 0 100 100" aria-hidden="true">${inner}</svg>`}
+  function mask(){return svg(`<path d="M20 30 Q50 10 80 30 Q80 70 50 85 Q20 70 20 30 Z" fill="none" stroke="#4B2E2A" stroke-width="3"/><circle cx="38" cy="45" r="4" fill="#4B2E2A"/><circle cx="62" cy="45" r="4" fill="#4B2E2A"/><path d="M35 60 Q50 68 65 60" stroke="#4B2E2A" stroke-width="2" fill="none"/>`)}
+  function coin(){return svg(`<ellipse cx="50" cy="60" rx="35" ry="25" fill="#4B2E2A"/><path d="M15 60 Q50 20 85 60" fill="#4B2E2A"/><circle cx="35" cy="55" r="6" fill="#D4A24C"/><circle cx="50" cy="50" r="6" fill="#D4A24C"/><circle cx="65" cy="55" r="6" fill="#D4A24C"/>`)}
+  function rosary(){return svg(`<circle cx="50" cy="50" r="30" fill="none" stroke="#4B2E2A" stroke-width="2" stroke-dasharray="3 4"/><path d="M50 80 L50 92 M45 88 L55 88" stroke="#4B2E2A" stroke-width="2"/>`)}
+  function pig(){return svg(`<ellipse cx="45" cy="60" rx="30" ry="22" fill="#4B2E2A"/><circle cx="72" cy="55" r="14" fill="#4B2E2A"/><circle cx="76" cy="53" r="2" fill="#F5E9D2"/><ellipse cx="82" cy="55" rx="4" ry="3" fill="#F5E9D2"/><rect x="30" y="78" width="4" height="8" fill="#4B2E2A"/><rect x="50" y="78" width="4" height="8" fill="#4B2E2A"/>`)}
+  function staff(){return svg(`<path d="M35 15 Q30 25 40 30 L55 85" stroke="#4B2E2A" stroke-width="4" fill="none" stroke-linecap="round"/>`)}
+  function cross(){return svg(`<rect x="45" y="15" width="10" height="70" fill="#4B2E2A"/><rect x="25" y="35" width="50" height="10" fill="#4B2E2A"/>`)}
+
+  /* -------- TELA 7: PAINEL DE CONCEITOS -------- */
+  const conceitos=[
+    {t:'Paródia',        e:'Retomar uma obra com riso e desvio.'},
+    {t:'Referência',     e:'Chamar outra obra sem apagar sua voz.'},
+    {t:'Adaptação',      e:'Transportar uma história para outro tempo ou palco.'},
+    {t:'Ironia',         e:'Dizer o contrário para acusar o mesmo.'},
+    {t:'Crítica social', e:'Rir para denunciar aquilo que dói.'},
+    {t:'Metalinguagem',  e:'A obra que fala de si mesma enquanto se conta.'},
+    {t:'Cordel',         e:'Verso popular que costura o sertão à literatura.'},
+    {t:'Comédia',        e:'O riso que revela — e às vezes salva.'},
+  ];
+  const painel=document.getElementById('painelWrap');
+  const raio=42; // porcentagem
+  conceitos.forEach((c,i)=>{
+    const ang=(i/conceitos.length)*Math.PI*2 - Math.PI/2;
+    const x=50 + Math.cos(ang)*raio;
+    const y=50 + Math.sin(ang)*raio;
+    const el=document.createElement('div');
+    el.className='conceito';
+    el.style.left=x+'%'; el.style.top=y+'%';
+    el.innerHTML=`${c.t}<span class="exp">${c.e}</span>`;
+    el.addEventListener('click',()=>{
+      document.querySelectorAll('.conceito.open').forEach(o=>o!==el&&o.classList.remove('open'));
+      el.classList.toggle('open');
+    });
+    painel.appendChild(el);
+  });
+
+  /* -------- TELA 8: PORTAS -------- */
+  document.querySelectorAll('.porta').forEach(p=>{
+    p.addEventListener('click',()=>{
+      const n=p.dataset.porta;
+      document.querySelectorAll('.porta-conteudo').forEach(c=>c.classList.remove('show'));
+      document.getElementById('porta'+n+'c').classList.add('show');
+      burnTransition(()=>{});
+    });
+  });
+
+  /* -------- TELA 9: MISTURA -------- */
+  const icones=[
+    {n:'Igreja',   svg:'<path d="M20 60 h30 v20 h-30 z M35 60 v-20 M28 40 h14 M25 80 h20" stroke="#B85C38" stroke-width="2" fill="none"/>'},
+    {n:'Porco',    svg:'<ellipse cx="45" cy="55" rx="25" ry="18" fill="none" stroke="#B85C38" stroke-width="2"/><circle cx="68" cy="52" r="10" fill="none" stroke="#B85C38" stroke-width="2"/>'},
+    {n:'Cordel',   svg:'<path d="M10 20 h60" stroke="#B85C38" stroke-width="2"/><rect x="15" y="20" width="10" height="14" fill="none" stroke="#B85C38" stroke-width="2"/><rect x="35" y="20" width="10" height="14" fill="none" stroke="#B85C38" stroke-width="2"/><rect x="55" y="20" width="10" height="14" fill="none" stroke="#B85C38" stroke-width="2"/>'},
+    {n:'Dinheiro', svg:'<circle cx="40" cy="40" r="15" fill="none" stroke="#B85C38" stroke-width="2"/><text x="40" y="46" text-anchor="middle" font-size="16" fill="#B85C38">$</text>'},
+    {n:'Justiça',  svg:'<path d="M40 15 v55 M20 30 h40 M25 70 h30" stroke="#B85C38" stroke-width="2" fill="none"/><circle cx="25" cy="45" r="6" fill="none" stroke="#B85C38" stroke-width="2"/><circle cx="55" cy="45" r="6" fill="none" stroke="#B85C38" stroke-width="2"/>'},
+    {n:'Riso',     svg:'<circle cx="40" cy="40" r="25" fill="none" stroke="#B85C38" stroke-width="2"/><circle cx="32" cy="35" r="2" fill="#B85C38"/><circle cx="48" cy="35" r="2" fill="#B85C38"/><path d="M28 45 Q40 58 52 45" stroke="#B85C38" stroke-width="2" fill="none"/>'},
+    {n:'Família',  svg:'<circle cx="25" cy="30" r="7" fill="none" stroke="#B85C38" stroke-width="2"/><circle cx="55" cy="30" r="7" fill="none" stroke="#B85C38" stroke-width="2"/><circle cx="40" cy="55" r="5" fill="none" stroke="#B85C38" stroke-width="2"/><path d="M25 40 v20 M55 40 v20" stroke="#B85C38" stroke-width="2"/>'},
+    {n:'Religião', svg:'<rect x="35" y="15" width="10" height="55" fill="#B85C38"/><rect x="20" y="30" width="40" height="10" fill="#B85C38"/>'},
+  ];
+  const mix=document.getElementById('mixWrap');
+  icones.forEach((ic,i)=>{
+    const el=document.createElement('div');
+    el.className='mix-icone';
+    el.innerHTML='<svg viewBox="0 0 80 80" aria-label="'+ic.n+'">'+ic.svg+'</svg>';
+    el.setAttribute('data-tip', ic.n);
+    mix.appendChild(el);
+  });
+  ScrollTrigger.create({
+    trigger:'#descubra', start:'top 60%',
+    onEnter:()=>{
+      const els=document.querySelectorAll('.mix-icone');
+      els.forEach((el,i)=>{
+        const angle=(i/els.length)*Math.PI*2;
+        const isMobile=window.innerWidth<=768;
+        const r=isMobile?(70+Math.random()*30):(150+Math.random()*50);
+        const x=Math.cos(angle)*r; const y=Math.sin(angle)*r;
+        gsap.fromTo(el,
+          {x:0,y:0,opacity:0,scale:.3},
+          {x:'50%',y:'50%',opacity:0,scale:1,duration:0}
+        );
+        gsap.to(el,{
+          left:`calc(50% + ${x}px)`, top:`calc(50% + ${y}px)`,
+          opacity:1, scale:1, duration:1.5, delay:i*.2, ease:'power3.out'
+        });
+        gsap.to(el,{
+          rotation:360, duration:20, repeat:-1, ease:'none', delay:i*.2+1.5
+        });
+      });
+      setTimeout(()=>{
+        typewriter(document.getElementById('mixFrase'),
+          'Você provavelmente já reconheceu essas histórias.');
+        gsap.to('#mixFrase',{opacity:1,duration:1});
+      }, 2500);
+    }
+  });
+
+  /* -------- PARALLAX HERO (reduzido no mobile) -------- */
+  const isMobileMQ = window.matchMedia('(max-width:768px)');
+  const isCoarse = window.matchMedia('(pointer:coarse)').matches;
+  if(!isMobileMQ.matches){
+    gsap.to('#hero .scene',{
+      scrollTrigger:{trigger:'#hero',start:'top top',end:'bottom top',scrub:true},
+      y:150, ease:'none'
+    });
+    gsap.to('#hero .hero-content',{
+      scrollTrigger:{trigger:'#hero',start:'top top',end:'bottom top',scrub:true},
+      y:-80, opacity:.3, ease:'none'
+    });
+  } else {
+    gsap.to('#hero .hero-content',{
+      scrollTrigger:{trigger:'#hero',start:'top top',end:'bottom top',scrub:true},
+      opacity:.5, ease:'none'
+    });
+  }
+
+  /* -------- HAMBURGER (mobile) -------- */
+  const menuBar = document.getElementById('menuBar');
+  const menuToggle = document.getElementById('menuToggle');
+  if(menuToggle){
+    menuToggle.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const open = menuBar.classList.toggle('open');
+      menuToggle.setAttribute('aria-expanded', open?'true':'false');
+      menuToggle.setAttribute('aria-label', open?'Fechar menu':'Abrir menu');
+    });
+    document.addEventListener('click', (e)=>{
+      if(!menuBar.contains(e.target)) {
+        menuBar.classList.remove('open');
+        menuToggle.setAttribute('aria-expanded','false');
+      }
+    });
+    document.querySelectorAll('#menuBar #toggleSom, #menuBar #toggleTema').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        if(isMobileMQ.matches){
+          setTimeout(()=>{
+            menuBar.classList.remove('open');
+            menuToggle.setAttribute('aria-expanded','false');
+          }, 250);
+        }
+      });
+    });
+  }
+
+  /* -------- TOQUE: abrir descrição de nodes do mapa e conceitos -------- */
+  if(isCoarse){
+    document.querySelectorAll('#mapa .node').forEach(n=>{
+      n.setAttribute('role','button');
+      n.setAttribute('tabindex','0');
+    });
+    document.querySelectorAll('#painel .conceito').forEach(c=>{
+      c.setAttribute('role','button');
+      c.setAttribute('tabindex','0');
+    });
+  }
+
+  /* -------- REDUZ animações pesadas em telas pequenas -------- */
+  if(isMobileMQ.matches){
+    // desativa parallax dos triggers pesados fora da viewport após scroll
+    ScrollTrigger.config({ ignoreMobileResize: true });
+  }
+
+  /* -------- Fecha menu em resize p/ desktop -------- */
+  window.addEventListener('resize', ()=>{
+    if(!isMobileMQ.matches){
+      menuBar && menuBar.classList.remove('open');
+    }
+    ScrollTrigger.refresh();
+  });
+
+})();
+
+</script>
+</body>
+</html>
